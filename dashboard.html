@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Scan Report — Web Based Security Analyzer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ["Outfit", "system-ui", "sans-serif"],
+              mono: ["JetBrains Mono", "ui-monospace", "monospace"],
+            },
+            boxShadow: {
+              glow: "0 0 60px -12px rgba(34, 211, 238, 0.25)",
+            },
+          },
+        },
+      };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body class="min-h-screen cyber-bg text-slate-100 font-sans">
+    <!-- Top bar -->
+    <header
+      class="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md sticky top-0 z-20"
+    >
+      <div class="max-w-6xl mx-auto px-4 py-4 flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <div
+            class="h-10 w-10 rounded-lg bg-gradient-to-br from-cyan-500/20 to-teal-600/10 border border-cyan-500/30 flex items-center justify-center font-mono text-cyan-400 text-[10px] font-bold tracking-tighter"
+          >
+            WSA
+          </div>
+          <div>
+            <p class="text-[10px] font-mono text-cyan-500/70 uppercase tracking-[0.2em]">
+              Security operations
+            </p>
+            <h1 class="text-lg font-bold text-white tracking-tight">Assessment report</h1>
+          </div>
+        </div>
+        <div class="flex items-center gap-3">
+          <div id="pdf-box" class="hidden">
+            <a
+              id="pdf-link"
+              href="#"
+              class="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-mono text-xs font-medium bg-slate-800/90 border border-slate-600 text-slate-200 hover:border-cyan-500/50 hover:text-cyan-300 transition"
+              download
+            >
+              <svg class="w-4 h-4 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Download Report
+            </a>
+          </div>
+          <a
+            href="/"
+            class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/20 transition"
+          >
+            New scan
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-4 py-8 md:py-10">
+      <p id="meta-url" class="font-mono text-xs text-slate-500 mb-8 break-all max-w-4xl"></p>
+
+      <!-- Score + gauge row -->
+      <div class="grid lg:grid-cols-12 gap-8 mb-10">
+        <div class="lg:col-span-7 glass-strong rounded-2xl p-6 md:p-8 shadow-glow">
+          <div class="flex flex-col md:flex-row md:items-center gap-8">
+            <div class="flex-shrink-0 flex justify-center">
+              <div class="relative w-[220px] h-[130px]">
+                <svg viewBox="0 0 220 130" class="w-full h-full" aria-hidden="true">
+                  <defs>
+                    <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stop-color="#f87171" />
+                      <stop offset="50%" stop-color="#fbbf24" />
+                      <stop offset="100%" stop-color="#34d399" />
+                    </linearGradient>
+                  </defs>
+                  <!-- Track -->
+                  <path
+                    d="M 30 110 A 80 80 0 0 1 190 110"
+                    fill="none"
+                    stroke="rgba(51,65,85,0.6)"
+                    stroke-width="14"
+                    stroke-linecap="round"
+                  />
+                  <!-- Value arc -->
+                  <path
+                    id="gauge-arc"
+                    class="gauge-arc-anim"
+                    d="M 30 110 A 80 80 0 0 1 190 110"
+                    fill="none"
+                    stroke="url(#gaugeGrad)"
+                    stroke-width="14"
+                    stroke-linecap="round"
+                    pathLength="100"
+                    stroke-dasharray="100"
+                    stroke-dashoffset="100"
+                  />
+                </svg>
+                <div
+                  class="absolute inset-0 flex flex-col items-center justify-start pt-9 pointer-events-none"
+                >
+                  <span
+                    id="score-val"
+                    class="text-5xl font-bold font-mono text-white tracking-tighter tabular-nums drop-shadow-lg"
+                    >—</span
+                  >
+                  <span class="text-[10px] font-mono uppercase tracking-widest text-slate-500 mt-1"
+                    >/ 100</span
+                  >
+                </div>
+              </div>
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-[10px] font-mono text-cyan-500/80 uppercase tracking-widest mb-2">
+                Composite security score
+              </p>
+              <p id="score-caption" class="text-slate-400 text-sm leading-relaxed mb-4">
+                Aggregated from header coverage, exposed services, injection probes, and TLS posture.
+              </p>
+              <div class="flex flex-wrap gap-2">
+                <span
+                  id="risk-badge"
+                  class="inline-flex items-center px-3 py-1 rounded-md text-xs font-mono font-semibold border"
+                  >—</span
+                >
+                <span
+                  id="findings-count"
+                  class="inline-flex items-center px-3 py-1 rounded-md text-xs font-mono text-slate-400 border border-slate-700 bg-slate-900/50"
+                ></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="lg:col-span-5 glass rounded-2xl p-6 border border-slate-700/40">
+          <p class="text-[10px] font-mono text-slate-500 uppercase tracking-widest mb-4">
+            Risk summary
+          </p>
+          <p id="risk-desc" class="text-slate-300 text-sm leading-relaxed min-h-[4rem]"></p>
+          <div class="mt-4 h-1.5 rounded-full bg-slate-800 overflow-hidden">
+            <div
+              id="risk-meter"
+              class="h-full rounded-full bg-emerald-500 transition-all duration-700"
+              style="width: 0%"
+            ></div>
+          </div>
+          <p class="text-[10px] font-mono text-slate-600 mt-2">Relative exposure index (visual)</p>
+        </div>
+      </div>
+
+      <!-- Module cards -->
+      <section class="mb-10">
+        <h2 class="text-sm font-mono font-semibold text-slate-400 uppercase tracking-widest mb-4">
+          Test modules
+        </h2>
+        <div
+          id="module-grid"
+          class="grid sm:grid-cols-2 xl:grid-cols-3 gap-4"
+        ></div>
+      </section>
+
+      <!-- Alerts -->
+      <section class="mb-10">
+        <h2 class="text-sm font-mono font-semibold text-slate-400 uppercase tracking-widest mb-4">
+          Vulnerability alerts
+        </h2>
+        <div id="vuln-list" class="space-y-3"></div>
+        <p id="vuln-empty" class="hidden glass rounded-xl p-8 text-center text-slate-500 text-sm border border-slate-800">
+          No automated findings — continue with manual review and professional tooling.
+        </p>
+      </section>
+
+      <!-- Crawler -->
+      <section id="links-section" class="glass rounded-2xl p-6 border border-slate-700/40 hidden">
+        <h2 class="text-sm font-mono font-semibold text-cyan-500/80 uppercase tracking-widest mb-4">
+          Attack surface — internal links
+        </h2>
+        <ul id="links-list" class="text-xs font-mono text-cyan-200/80 space-y-2 max-h-56 overflow-y-auto"></ul>
+      </section>
+    </main>
+
+    <script src="/script.js"></script>
+    <script>
+      const data = loadScanResult();
+      if (!data) {
+        window.location.href = "/";
+      } else {
+        const mod = data.modules || data.details || {};
+        const fbc = data.findings_by_category || {};
+        const summary = data.summary || {};
+        const score =
+          typeof data.score === "number"
+            ? data.score
+            : summary.score ?? 0;
+        const risk = data.risk || summary.risk || "—";
+        const vulns = data.vulnerabilities || [];
+
+        const targetUrl = 
+          data.scannedUrl ||
+          (data.target && data.target.url) ||
+          "";
+
+        document.getElementById("meta-url").textContent =
+          "TARGET  " + targetUrl;
+
+        // document.getElementById("meta-url").textContent =
+        //   "TARGET  " + (data.scannedUrl || data.target?.url || "");
+
+        document.getElementById("score-val").textContent = score;
+
+        const arc = document.getElementById("gauge-arc");
+        const offset = 100 - Math.min(100, Math.max(0, score));
+        requestAnimationFrame(() => {
+          arc.style.strokeDashoffset = String(offset);
+        });
+
+        const badge = document.getElementById("risk-badge");
+        const riskMeter = document.getElementById("risk-meter");
+        const desc = document.getElementById("risk-desc");
+        if (risk === "Low") {
+          badge.className =
+            "inline-flex items-center px-3 py-1 rounded-md text-xs font-mono font-semibold border border-emerald-500/40 bg-emerald-950/40 text-emerald-300";
+          desc.textContent =
+            "Lower observed exposure from this automated pass. Validate in staging and with DAST.";
+          riskMeter.className =
+            "h-full rounded-full bg-emerald-500 transition-all duration-700";
+          riskMeter.style.width = "85%";
+        } else if (risk === "Medium") {
+          badge.className =
+            "inline-flex items-center px-3 py-1 rounded-md text-xs font-mono font-semibold border border-amber-500/40 bg-amber-950/40 text-amber-300";
+          desc.textContent =
+            "Multiple signals require triage: prioritize headers, TLS, and injection retests.";
+          riskMeter.className =
+            "h-full rounded-full bg-amber-500 transition-all duration-700";
+          riskMeter.style.width = "55%";
+        } else {
+          badge.className =
+            "inline-flex items-center px-3 py-1 rounded-md text-xs font-mono font-semibold border border-red-500/40 bg-red-950/50 text-red-300";
+          desc.textContent =
+            "High-priority findings or transport issues — remediate before wider exposure.";
+          riskMeter.className =
+            "h-full rounded-full bg-red-500 transition-all duration-700";
+          riskMeter.style.width = "92%";
+        }
+        badge.textContent = "RISK · " + risk.toUpperCase();
+        document.getElementById("findings-count").textContent =
+          (summary.total_findings ?? vulns.length) + " finding(s)";
+
+        function alertLevel(text) {
+          const t = String(text).toLowerCase();
+          if (
+            /xss|sql injection|expired|invalid url|ssl\/tls|no peer certificate|no peer/.test(
+              t
+            )
+          )
+            return "critical";
+          if (
+            /missing|open port|not served over https|https not used|request failed|connection error|port scan/.test(
+              t
+            )
+          )
+            return "warning";
+          return "info";
+        }
+
+        function levelStyles(level) {
+          if (level === "critical")
+            return "border-red-500/35 bg-red-950/25 text-red-100";
+          if (level === "warning")
+            return "border-amber-500/35 bg-amber-950/20 text-amber-100";
+          return "border-slate-600/60 bg-slate-900/40 text-slate-300";
+        }
+
+        function levelLabel(level) {
+          if (level === "critical") return "CRITICAL";
+          if (level === "warning") return "WARNING";
+          return "INFO";
+        }
+
+        const listEl = document.getElementById("vuln-list");
+        if (vulns.length === 0) {
+          document.getElementById("vuln-empty").classList.remove("hidden");
+        } else {
+          vulns.forEach((v) => {
+            const level = alertLevel(v);
+            const row = document.createElement("div");
+            row.className =
+              "module-card flex flex-wrap items-start gap-4 rounded-xl px-4 py-3 border " +
+              levelStyles(level);
+            row.innerHTML =
+              '<span class="font-mono text-[10px] font-bold tracking-wider shrink-0 mt-0.5 ' +
+              (level === "critical"
+                ? "text-red-400"
+                : level === "warning"
+                  ? "text-amber-400"
+                  : "text-slate-500") +
+              '">' +
+              levelLabel(level) +
+              "</span>" +
+              '<p class="text-sm flex-1 min-w-0 leading-snug">' +
+              escapeHtml(v) +
+              "</p>";
+            listEl.appendChild(row);
+          });
+        }
+
+        function escapeHtml(s) {
+          const d = document.createElement("div");
+          d.textContent = s;
+          return d.innerHTML;
+        }
+
+        function cardStatus(cat) {
+          const items = fbc[cat] || [];
+          if (items.length) return { label: "ISSUES", cls: "text-red-400 border-red-500/30 bg-red-950/20" };
+          return { label: "CLEAR", cls: "text-emerald-400 border-emerald-500/25 bg-emerald-950/15" };
+        }
+
+        const cards = [
+          {
+            key: "url",
+            title: "URL & transport",
+            subtitle: "Reachability & HTTPS",
+            cat: "url",
+            body: () => {
+              const u = mod.url_analysis || {};
+              const lines = [];
+              if (u.status_code != null) lines.push("HTTP " + u.status_code);
+              if (u.final_url) lines.push("Final: " + u.final_url);
+              if (u.error) lines.push("Error: " + u.error);
+              if (mod.http_status && !u.status_code) lines.push("HTTP " + mod.http_status);
+              return lines.length ? lines.join("\n") : "—";
+            },
+          },
+          {
+            key: "headers",
+            title: "Security headers",
+            subtitle: "CSP · HSTS · framing",
+            cat: "headers",
+            body: () => {
+              const h = mod.headers;
+              if (!h) return mod.headers_error ? "Request error: " + mod.headers_error : "Not retrieved";
+              const miss = (h.missing || []).join(", ") || "none";
+              return "Missing: " + miss;
+            },
+          },
+          {
+            key: "ports",
+            title: "TCP port scan",
+            subtitle: mod.ports?.method || "nmap / probe",
+            cat: "ports",
+            body: () => {
+              const p = mod.ports;
+              if (!p) return "—";
+              const open = (p.open_ports || []).join(", ") || "none";
+              return "Open: " + open + (p.note ? "\n" + p.note : "");
+            },
+          },
+          {
+            key: "xss",
+            title: "Reflected XSS",
+            subtitle: "Payload reflection",
+            cat: "xss",
+            body: () => {
+              const x = mod.xss;
+              if (!x) return "—";
+              return x.reflected ? "Reflection detected" : "No reflection signal" + (x.detail ? "\n" + x.detail : "");
+            },
+          },
+          {
+            key: "sqli",
+            title: "SQL injection",
+            subtitle: "Error-based heuristic",
+            cat: "sqli",
+            body: () => {
+              const s = mod.sqli;
+              if (!s) return "—";
+              return s.suspicious ? "Suspicious DB errors" : "No error patterns" + (s.detail ? "\n" + s.detail : "");
+            },
+          },
+          {
+            key: "ssl",
+            title: "SSL / TLS",
+            subtitle: "Certificate & HTTPS",
+            cat: "ssl",
+            body: () => {
+              const s = mod.ssl;
+              if (!s) return "—";
+              let t = s.https ? "HTTPS" : "Not HTTPS";
+              if (s.expires) t += "\nExpires: " + s.expires;
+              if (s.issuer) t += "\nIssuer: " + s.issuer;
+              return t;
+            },
+          },
+        ];
+
+        const grid = document.getElementById("module-grid");
+
+        cards.forEach((c) => {
+          const st = cardStatus(c.cat);
+          const el = document.createElement("div");
+          el.className =
+            "module-card glass rounded-xl p-4 border border-slate-700/50 flex flex-col min-h-[140px]";
+          el.innerHTML =
+            '<div class="flex items-start justify-between gap-2 mb-3">' +
+            '<div><h3 class="font-semibold text-white text-sm">' +
+            escapeHtml(c.title) +
+            '</h3><p class="text-[10px] font-mono text-slate-500 mt-0.5">' +
+            escapeHtml(c.subtitle) +
+            "</p></div>" +
+            '<span class="shrink-0 font-mono text-[9px] px-2 py-0.5 rounded border ' +
+            st.cls +
+            '">' +
+            st.label +
+            "</span></div>" +
+            '<pre class="text-[11px] font-mono text-slate-400 whitespace-pre-wrap break-all flex-1 leading-relaxed">' +
+            escapeHtml(String(c.body())) +
+            "</pre>";
+          grid.appendChild(el);
+        });
+
+        const crawlCard = document.createElement("div");
+        const cr = mod.crawler;
+        crawlCard.className =
+          "module-card glass rounded-xl p-4 border border-slate-700/50 sm:col-span-2 xl:col-span-1";
+        crawlCard.innerHTML =
+          '<div class="flex items-start justify-between gap-2 mb-2">' +
+          '<div><h3 class="font-semibold text-white text-sm">Surface crawler</h3>' +
+          '<p class="text-[10px] font-mono text-slate-500 mt-0.5">Same-origin links</p></div>' +
+          '<span class="font-mono text-[9px] px-2 py-0.5 rounded border border-cyan-500/25 text-cyan-400/90 bg-cyan-950/20">' +
+          (cr && cr.count != null ? cr.count + " LINKS" : "—") +
+          "</span></div>" +
+          '<p class="text-[11px] font-mono text-slate-500">Harvested for scope awareness (not a vulnerability).</p>';
+        grid.appendChild(crawlCard);
+
+        if (data.pdf_report) {
+          const pdfA = document.getElementById("pdf-link");
+          document.getElementById("pdf-box").classList.remove("hidden");
+          pdfA.href = data.pdf_report;
+          const sid = (data.scan_id || "report").replace(/-/g, "").slice(0, 16);
+          pdfA.setAttribute("download", "security-report-" + sid + ".pdf");
+        }
+
+        const crawl = mod.crawler;
+        if (crawl && crawl.internal_links && crawl.internal_links.length) {
+          document.getElementById("links-section").classList.remove("hidden");
+          const ul = document.getElementById("links-list");
+          crawl.internal_links.slice(0, 40).forEach((u) => {
+            const li = document.createElement("li");
+            const a = document.createElement("a");
+            a.href = u;
+            a.target = "_blank";
+            a.rel = "noopener noreferrer";
+            a.className = "hover:text-cyan-300 underline-offset-2 hover:underline break-all";
+            a.textContent = u;
+            li.appendChild(a);
+            ul.appendChild(li);
+          });
+        }
+      }
+    </script>
+  </body>
+</html>

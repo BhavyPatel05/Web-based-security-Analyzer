@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Web Based Security Analyzer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              slate: { 950: "#0a0e17" },
+            },
+          },
+        },
+      };
+    </script>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body
+    class="min-h-screen bg-slate-950 text-slate-100 bg-[radial-gradient(ellipse_at_top,_#0f172a_0%,_#020617_50%)]"
+  >
+    <div class="max-w-3xl mx-auto px-4 py-16">
+      <header class="text-center mb-12">
+        <p
+          class="text-cyan-400 text-sm font-semibold tracking-widest uppercase mb-3"
+        >
+          Mini vulnerability scanner
+        </p>
+        <h1 class="text-4xl md:text-5xl font-bold tracking-tight mb-4">
+          Web Based Security Analyzer
+        </h1>
+        <p class="text-slate-400 text-lg max-w-xl mx-auto">
+          Enter a URL you are authorized to test. The scanner checks headers,
+          ports, SSL, and basic XSS/SQLi signals — similar in spirit to OWASP ZAP
+          or Burp, at a smaller scale.
+        </p>
+      </header>
+
+      <div class="glass rounded-2xl p-8 md:p-10 shadow-2xl shadow-cyan-950/40">
+        <form id="scan-form" class="space-y-6">
+          <div>
+            <label for="url" class="block text-sm font-medium text-slate-300 mb-2"
+              >Target URL</label
+            >
+            <input
+              type="url"
+              id="url"
+              name="url"
+              required
+              placeholder="https://example.com"
+              class="w-full px-4 py-3 rounded-xl bg-slate-900/80 border border-slate-700 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 outline-none transition text-slate-100 placeholder:text-slate-600"
+            />
+          </div>
+          <button
+            type="submit"
+            class="w-full py-3.5 rounded-xl font-semibold bg-gradient-to-r from-cyan-500 to-teal-500 text-slate-950 hover:from-cyan-400 hover:to-teal-400 transition shadow-lg shadow-cyan-500/25"
+          >
+            Scan Website
+          </button>
+        </form>
+        <p class="mt-6 text-xs text-slate-500 text-center">
+          Only scan systems you own or have explicit permission to test.
+        </p>
+      </div>
+    </div>
+    <script src="/script.js"></script>
+    <script>
+      document.getElementById("scan-form").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const url = document.getElementById("url").value.trim();
+
+        try {
+          new URL(url);
+        } catch {
+          alert("Please enter a valid URL (example: https://example.com)");
+          return;
+        }
+        if (!url) return;
+        const q = encodeURIComponent(url);
+        window.location.href = "/scan.html?url=" + q;
+      });
+    </script>
+  </body>
+</html>

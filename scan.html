@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Scanning — Web Based Security Analyzer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ["Outfit", "system-ui", "sans-serif"],
+              mono: ["JetBrains Mono", "ui-monospace", "monospace"],
+            },
+          },
+        },
+      };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Outfit:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body
+    class="min-h-screen cyber-bg text-slate-100 font-sans flex items-center justify-center px-4"
+  >
+    <div class="w-full max-w-lg">
+      <div class="glass-strong rounded-2xl p-8 md:p-10 shadow-2xl shadow-black/40">
+        <div class="flex items-center gap-3 mb-8">
+          <div
+            class="h-12 w-12 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center font-mono text-cyan-400 text-xs font-bold"
+          >
+            WSA
+          </div>
+          <div>
+            <p class="text-xs font-mono text-cyan-500/80 uppercase tracking-widest">
+              Active scan
+            </p>
+            <h1 class="text-xl font-bold text-white tracking-tight">Security analysis</h1>
+          </div>
+        </div>
+
+        <p id="target-url" class="font-mono text-xs text-cyan-300/90 break-all mb-6 p-3 rounded-lg bg-slate-950/60 border border-slate-700/50"></p>
+
+        <!-- Progress bar -->
+        <div class="mb-6">
+          <div class="flex justify-between text-[10px] font-mono uppercase tracking-wider text-slate-500 mb-2">
+            <span>Progress</span>
+            <span id="progress-pct">0%</span>
+          </div>
+          <div
+            class="h-2 rounded-full bg-slate-800/80 overflow-hidden border border-slate-700/50 relative"
+          >
+            <div
+              id="progress-fill"
+              class="scan-bar-fill h-full rounded-full bg-gradient-to-r from-cyan-600 via-teal-500 to-emerald-500 relative overflow-hidden w-0"
+            >
+              <span
+                class="absolute inset-0 progress-shimmer opacity-60"
+                aria-hidden="true"
+              ></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex justify-center mb-8">
+          <div
+            class="h-14 w-14 rounded-full scan-ring"
+            role="status"
+            aria-label="Scan in progress"
+          ></div>
+        </div>
+
+        <ul
+          id="progress-log"
+          class="text-left text-xs font-mono text-slate-400 space-y-2 min-h-[140px] max-h-48 overflow-y-auto glass rounded-xl p-4 border border-slate-700/30"
+        ></ul>
+
+        <p id="error-msg" class="mt-6 text-red-400 text-sm hidden font-mono text-xs"></p>
+        <a
+          id="back-link"
+          href="/"
+          class="mt-6 inline-flex items-center gap-2 text-cyan-400 hover:text-cyan-300 text-sm font-medium hidden"
+        >
+          ← Back to scanner
+        </a>
+      </div>
+    </div>
+    <script src="/script.js"></script>
+    <script>
+      const params = new URLSearchParams(window.location.search);
+      const rawUrl = params.get("url");
+      const logEl = document.getElementById("progress-log");
+      const errEl = document.getElementById("error-msg");
+      const backEl = document.getElementById("back-link");
+      const fillEl = document.getElementById("progress-fill");
+      const pctEl = document.getElementById("progress-pct");
+
+      function setProgress(p) {
+        const n = Math.min(100, Math.max(0, p));
+        fillEl.style.width = n + "%";
+        pctEl.textContent = Math.round(n) + "%";
+      }
+
+      function logLine(text) {
+        const li = document.createElement("li");
+        li.className =
+          "pulse-soft border-l-2 border-cyan-500/40 pl-3 text-slate-300";
+        li.textContent = text;
+        logEl.appendChild(li);
+        logEl.scrollTop = logEl.scrollHeight;
+      }
+
+      async function run() {
+        if (!rawUrl) {
+          errEl.textContent = "No URL provided.";
+          errEl.classList.remove("hidden");
+          backEl.classList.remove("hidden");
+          return;
+        }
+        document.getElementById("target-url").textContent = rawUrl;
+
+        const steps = [
+          "Validating URL and fetching response…",
+          "Analyzing security headers…",
+          "Running port scan…",
+          "Testing reflected XSS patterns…",
+          "Testing SQL error signals…",
+          "Checking SSL certificate…",
+          "Crawling internal links…",
+          "Computing security score…",
+        ];
+        const total = steps.length;
+        let stepIdx = 0;
+
+        const stepTimer = setInterval(() => {
+          if (stepIdx < total) {
+            logLine(steps[stepIdx]);
+            setProgress(((stepIdx + 1) / total) * 92);
+            stepIdx++;
+          }
+        }, 650);
+
+        try {
+          const response = await fetch("/scan", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url: rawUrl }),
+          });
+          clearInterval(stepTimer);
+          let data;
+
+          try {
+            data = await response.json();
+          } catch {
+            throw new Error("Invalid response from backend");
+          }
+
+          if (!response.ok) throw new Error(data.error || response.statusText);
+
+          setProgress(100);
+          while (stepIdx < total) {
+            logLine(steps[stepIdx]);
+            stepIdx++;
+          }
+          saveScanResult({ ...data, scannedUrl: rawUrl });
+          setTimeout(() => window.location.replace("/dashboard.html"), 400);
+        } catch (e) {
+          clearInterval(stepTimer);
+          setProgress(0);
+          errEl.textContent =
+            e.message || "Scan failed. Is the backend running on port 5000?";
+          errEl.classList.remove("hidden");
+          backEl.classList.remove("hidden");
+        }
+      }
+      run();
+    </script>
+  </body>
+</html>
